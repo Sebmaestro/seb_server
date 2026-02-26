@@ -3,7 +3,7 @@
 
 void start_server() {
     printf("Starting the server in main file...\n");
-    accept_connection();
+    initialize_server();
 }
 
 int main(void) {

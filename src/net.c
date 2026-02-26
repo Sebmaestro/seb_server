@@ -1,10 +1,56 @@
+#include "../include/net.h"
+#include "../include/http.h"
+
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdlib.h>
 
-void accept_connection() {
+/**
+* 
+*/
+void server_loop(int server_fd) {
+    while (1) {
+        printf("Listening for incoming connections on port 8080...\n");
+        int clientFD = accept(server_fd, NULL, NULL);
+        if (clientFD < 0) {
+            perror("Failed to accept connection");
+            continue;
+        }
+
+        char *buffer = malloc(1024);
+        if (buffer == NULL) {
+            perror("Failed to allocate buffer");
+            close(clientFD);
+            continue;
+        }
+
+        int bytesRead = read(clientFD, buffer, 1023);
+        if (bytesRead < 0) {
+            perror("Failed to read from client");
+            free(buffer);
+            close(clientFD);
+            continue;
+        }
+
+        buffer[bytesRead] = '\0';
+        printf("Received data from client buffer: %s\n", buffer);
+        printf("Bytes read: %d\n\n", bytesRead);
+
+        // parsing the request todo
+        parse_request(buffer);
+
+        free(buffer);
+        close(clientFD);
+    }
+}
+
+
+/**
+* Initializes the server with sockets
+*/
+void initialize_server() {
     int socketSwag = socket(AF_INET, SOCK_STREAM, 0);
     if (socketSwag < 0) {
         perror("Failed to create socket");
@@ -39,29 +85,9 @@ if (setsockopt(socketSwag, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
     if (listenResult < 0) {
         perror("Failed to listen on socket");
         return;
-    } else {
-        while (1) {
-            printf("Listening for incoming connections on port 8080...\n");
-            int clientFD = accept(socketSwag, NULL, NULL);
-            if (clientFD < 0) {
-                perror("Failed to accept connection");
-                continue;
-            } else {
-                char * buffer = malloc(1024);
-                int bytesRead = read(clientFD, buffer, 1024);
-                if (bytesRead < 0) {
-                    perror("Failed to read from client");
-                    free(buffer);
-                    close(clientFD);
-                    continue;
-                } 
-                printf("Received data from client buffer: %s\n", buffer);
-                printf("Bytes read: %d\n\n", bytesRead);
-                free(buffer);
-                close(clientFD);
-            }
-        }
     }
+
+    server_loop(socketSwag);
     close(socketSwag);
 
 }
