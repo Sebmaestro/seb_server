@@ -6,6 +6,61 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
+
+void write_response(int clientFD) {
+    char * response = "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nContent-Type: text/plain\r\n\r\ntjena";
+    write(clientFD, response, strlen(response));
+}
+
+int read_loop(int clientFD, char * buffer, int * bodySize) {
+    int bytesRead = 0;
+    while(1) {
+        //Read into buffer but move ahead the pointer the nr of bytes we have already read
+        int n = read(clientFD, buffer+bytesRead, 1023-bytesRead);
+
+        if (n < 0) {
+            perror("Failed to read from client");
+            return -1;
+        }
+
+        //Read is no longer reading
+        if (n == 0) {
+            printf("TJENAMORS\n");
+            break;
+        }
+        bytesRead += n;
+        buffer[bytesRead] = '\0';
+        printf("Bytes read in loop: %d\n", bytesRead);
+
+        char * headersEnd = strstr(buffer, "\r\n\r\n");
+        
+        if(headersEnd) {
+            //Headers are read
+            //We get the size of headers by subtracting distance of the addresses. +4 skips the \stuff
+            int headersLen = headersEnd - buffer + 4;
+            printf("Headers length: %d\n", headersLen);
+            char * contentLength = strstr(buffer, "Content-Length: ");
+            if(contentLength == NULL) {
+                printf("No content length header found, assuming body size is 0.\n");
+                *bodySize = 0;
+                break;
+            }
+            contentLength = contentLength + 16;
+            *bodySize = strtol(contentLength, NULL, 10);
+            printf("bodysize: %d\n", *bodySize);
+            int bodyRead = bytesRead - headersLen;
+
+            if(bodyRead >= *bodySize) {
+                //Body is fully read
+                break;
+            }
+        }
+    }
+
+    return bytesRead;
+}
+
 
 /**
 * 
@@ -25,10 +80,9 @@ void server_loop(int server_fd) {
             close(clientFD);
             continue;
         }
-
-        int bytesRead = read(clientFD, buffer, 1023);
+        int bodySize = 0;
+        int bytesRead = read_loop(clientFD, buffer, &bodySize);
         if (bytesRead < 0) {
-            perror("Failed to read from client");
             free(buffer);
             close(clientFD);
             continue;
@@ -39,9 +93,10 @@ void server_loop(int server_fd) {
         printf("Bytes read: %d\n\n", bytesRead);
 
         // parsing the request todo
-        parse_request(buffer);
+        parse_request(buffer, &bodySize);
 
         free(buffer);
+        write_response(clientFD);
         close(clientFD);
     }
 }
