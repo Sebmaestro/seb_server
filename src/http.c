@@ -19,7 +19,7 @@ void parse_request_line(char * requestLine, char ** method, char ** path, char *
 }
 
 
-void parse_request(char * buffer, int * bodySize) {
+void parse_request(char * buffer, int * bodySize, char ** method, char ** path, char ** version) {
     printf("This is in the parse_req function: \n%s\n", buffer);
 
     char * requestLine = buffer; 
@@ -38,13 +38,14 @@ void parse_request(char * buffer, int * bodySize) {
     printf("body: %s\n\n", body);
 
     //printf("halloj %s\n", parse_method(requestLine));
-    char * method = NULL;
-    char * path = NULL;
-    char * version = NULL;
-    parse_request_line(requestLine, &method, &path, &version);
 
-    printf("Method: %s\n", method);
-    printf("Path: %s\n", path);
-    printf("Version: %s\n", version);
+    //Skickar utan & eftersom vi redan tagit emot ** i funktionen
+    parse_request_line(requestLine, method, path, version);
+
+    printf("Method: %s\n", *method);
+    printf("Path: %s\n", *path);
+    printf("Version: %s\n", *version);
+
+    printf("bodysize: %d\n", *bodySize);
 }
 

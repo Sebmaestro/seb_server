@@ -3,6 +3,6 @@
 
 void print_ascii(char *);
 void parse_request_line(char *, char **, char **, char **);
-void parse_request(char *, int *);
+void parse_request(char *, int *, char **, char **, char **);
 
 #endif

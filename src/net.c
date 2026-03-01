@@ -8,8 +8,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-void write_response(int clientFD) {
-    char * response = "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nContent-Type: text/plain\r\n\r\ntjena";
+void write_response(int clientFD, char * method) {
+    // printf("method is: %s\n", method);
+
+    if(strcmp(method, "GET") == 0) {
+        printf("Received a GET request\n");
+    } else if (strcmp(method, "POST") == 0) {
+        printf("Received a POST request\n");
+    } 
+    char * response =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Length: 5\r\n"
+                        "Content-Type: text/plain\r\n"
+                        "\r\n"
+                        "tjena";
     write(clientFD, response, strlen(response));
 }
 
@@ -46,6 +58,7 @@ int read_loop(int clientFD, char * buffer, int * bodySize) {
                 *bodySize = 0;
                 break;
             }
+            // +16 to reach the actual size in that string
             contentLength = contentLength + 16;
             *bodySize = strtol(contentLength, NULL, 10);
             printf("bodysize: %d\n", *bodySize);
@@ -55,6 +68,8 @@ int read_loop(int clientFD, char * buffer, int * bodySize) {
                 //Body is fully read
                 break;
             }
+        } else {
+            perror("Header could not be read i think\n");
         }
     }
 
@@ -93,10 +108,18 @@ void server_loop(int server_fd) {
         printf("Bytes read: %d\n\n", bytesRead);
 
         // parsing the request todo
-        parse_request(buffer, &bodySize);
+        char * method = NULL;
+        char * path = NULL;
+        char * version = NULL;
+        parse_request(buffer, &bodySize, &method, &path, &version);
 
+        printf("Method: %s\n", method);
+        printf("Path: %s\n", path);
+        printf("Version: %s\n", version);
+
+        
+        write_response(clientFD, method);
         free(buffer);
-        write_response(clientFD);
         close(clientFD);
     }
 }
